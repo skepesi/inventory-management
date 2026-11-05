@@ -6,7 +6,9 @@ export default {
     orders: 'Orders',
     finance: 'Finance',
     demandForecast: 'Demand Forecast',
+    backlog: 'Backlog',
     restocking: 'Restocking',
+    reports: 'Reports',
     companyName: 'Catalyst Components',
     subtitle: 'Inventory Management System'
   },
@@ -225,6 +227,63 @@ export default {
     }
   },
 
+  // Reports
+  reports: {
+    title: 'Performance Reports',
+    description: 'View quarterly performance metrics and monthly trends',
+    loading: 'Loading reports...',
+    loadError: 'Failed to load reports',
+    noData: 'No report data matches the selected filters',
+    notAvailable: 'N/A',
+    quarterlyPerformance: 'Quarterly Performance',
+    monthlyRevenueTrend: 'Monthly Revenue Trend',
+    monthOverMonth: 'Month-over-Month Analysis',
+    table: {
+      quarter: 'Quarter',
+      totalOrders: 'Total Orders',
+      totalRevenue: 'Total Revenue',
+      avgOrderValue: 'Avg Order Value',
+      fulfillmentRate: 'Fulfillment Rate',
+      month: 'Month',
+      orders: 'Orders',
+      revenue: 'Revenue',
+      change: 'Change',
+      growthRate: 'Growth Rate'
+    },
+    stats: {
+      totalRevenue: 'Total Revenue (YTD)',
+      avgMonthlyRevenue: 'Avg Monthly Revenue',
+      totalOrders: 'Total Orders (YTD)',
+      bestQuarter: 'Best Performing Quarter'
+    }
+  },
+
+  // Backlog
+  backlog: {
+    title: 'Backlog Management',
+    description: 'Track and resolve inventory shortages',
+    loading: 'Loading backlog...',
+    loadError: 'Failed to load backlog',
+    highPriority: 'High Priority',
+    mediumPriority: 'Medium Priority',
+    lowPriority: 'Low Priority',
+    totalItems: 'Total Backlog Items',
+    items: 'Backlog Items',
+    noItems: 'No backlog items - all orders can be fulfilled!',
+    unitsShort: '{count} units short',
+    daysCount: '{count} days',
+    table: {
+      orderId: 'Order ID',
+      sku: 'SKU',
+      itemName: 'Item Name',
+      quantityNeeded: 'Quantity Needed',
+      quantityAvailable: 'Quantity Available',
+      shortage: 'Shortage',
+      daysDelayed: 'Days Delayed',
+      priority: 'Priority'
+    }
+  },
+
   // Filters
   filters: {
     timePeriod: 'Time Period',
@@ -340,6 +399,25 @@ export default {
     dueDate: 'Due Date',
     addTask: 'Add Task',
     noTasks: 'No tasks yet. Add your first task above!'
+  },
+
+  // Low-stock alerts
+  alerts: {
+    buttonLabel: 'Low stock alerts, {count} items',
+    buttonLabelNone: 'Low stock alerts, none',
+    heading: 'Low stock alerts ({count})',
+    loading: 'Loading alerts...',
+    error: 'Failed to load low stock alerts',
+    retry: 'Retry',
+    empty: 'No items are low on stock',
+    onHand: 'On hand / reorder point',
+    shortfall: 'Shortfall',
+    reorderCost: 'Reorder cost',
+    severity: {
+      critical: 'Critical',
+      warning: 'Warning'
+    },
+    viewInventory: 'View inventory'
   },
 
   // Language

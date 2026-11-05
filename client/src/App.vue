@@ -22,13 +22,17 @@
           <router-link to="/demand" :class="{ active: $route.path === '/demand' }">
             {{ t('nav.demandForecast') }}
           </router-link>
+          <router-link to="/backlog" :class="{ active: $route.path === '/backlog' }">
+            {{ t('nav.backlog') }}
+          </router-link>
           <router-link to="/restocking" :class="{ active: $route.path === '/restocking' }">
             {{ t('nav.restocking') }}
           </router-link>
           <router-link to="/reports" :class="{ active: $route.path === '/reports' }">
-            Reports
+            {{ t('nav.reports') }}
           </router-link>
         </nav>
+        <LowStockAlerts />
         <LanguageSwitcher />
         <ProfileMenu
           @show-profile-details="showProfileDetails = true"
@@ -67,6 +71,7 @@ import ProfileMenu from './components/ProfileMenu.vue'
 import ProfileDetailsModal from './components/ProfileDetailsModal.vue'
 import TasksModal from './components/TasksModal.vue'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
+import LowStockAlerts from './components/LowStockAlerts.vue'
 
 export default {
   name: 'App',
@@ -75,7 +80,8 @@ export default {
     ProfileMenu,
     ProfileDetailsModal,
     TasksModal,
-    LanguageSwitcher
+    LanguageSwitcher,
+    LowStockAlerts
   },
   setup() {
     const { currentUser } = useAuth()
@@ -208,6 +214,7 @@ body {
   margin-right: 1rem;
 }
 
+.nav-container > .low-stock-alerts,
 .nav-container > .language-switcher {
   margin-right: 1rem;
 }
