@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from datetime import datetime, timedelta
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders
 
 app = FastAPI(title="Factory Inventory Management System")
@@ -89,6 +90,8 @@ class DemandForecast(BaseModel):
     forecasted_demand: int
     trend: str
     period: str
+    unit_cost: float
+    lead_time_days: int
 
 class BacklogItem(BaseModel):
     id: str
@@ -119,6 +122,96 @@ class CreatePurchaseOrderRequest(BaseModel):
     unit_cost: float
     expected_delivery_date: str
     notes: Optional[str] = None
+
+class RestockItem(BaseModel):
+    sku: str
+    name: str
+    trend: str
+    quantity: int
+    unit_cost: float
+    line_total: float
+    lead_time_days: int
+
+class RestockRecommendation(BaseModel):
+    budget: float
+    items: List[RestockItem]
+    total_cost: float
+    remaining_budget: float
+    full_cost: float
+
+# Upper limit on budgets: infinite or enormous floats would overflow when converted to cents
+MAX_RESTOCK_BUDGET = 1_000_000_000
+
+class CreateRestockOrderRequest(BaseModel):
+    budget: float = Field(ge=0, le=MAX_RESTOCK_BUDGET, allow_inf_nan=False)
+
+class RestockOrder(BaseModel):
+    id: str
+    order_number: str
+    items: List[RestockItem]
+    budget: float
+    total_cost: float
+    status: str
+    order_date: str
+    lead_time_days: int
+    expected_delivery: str
+
+# Submitted restocking orders. Held in memory only, so they reset on restart.
+# Kept apart from customer orders so they don't affect revenue or dashboard totals.
+restocking_orders = []
+
+def to_cents(amount: float) -> int:
+    """Convert a dollar amount to whole cents"""
+    return round(amount * 100)
+
+def ranked_restock_candidates() -> list:
+    """Get forecast items worth restocking, most urgent first, with the units needed"""
+    candidates = []
+    for forecast in demand_forecasts:
+        gap = forecast["forecasted_demand"] - forecast["current_demand"]
+        # Decreasing items are never restocked, even if they show a positive gap
+        if forecast["trend"].lower() == "decreasing" or gap <= 0:
+            continue
+        candidates.append({**forecast, "gap": gap})
+
+    # Increasing items outrank every stable item, however large the stable gap is.
+    # Python's sort is stable, so equal gaps keep their order in the forecast file,
+    # which keeps the recommendation the same between requests.
+    candidates.sort(key=lambda c: (c["trend"].lower() != "increasing", -c["gap"]))
+    return candidates
+
+def recommend_restock(budget: float) -> dict:
+    """Recommend what to restock for a budget, filling it in priority order"""
+    candidates = ranked_restock_candidates()
+
+    # Work in whole cents: float division can lose a unit at an exact budget boundary
+    remaining = to_cents(budget)
+    items = []
+    for candidate in candidates:
+        unit_cents = to_cents(candidate["unit_cost"])
+        quantity = min(candidate["gap"], remaining // unit_cents)
+        # Keep going when an item doesn't fit: a cheaper, lower-ranked item may still fit
+        if quantity <= 0:
+            continue
+        remaining -= quantity * unit_cents
+        items.append({
+            "sku": candidate["item_sku"],
+            "name": candidate["item_name"],
+            "trend": candidate["trend"],
+            "quantity": quantity,
+            "unit_cost": candidate["unit_cost"],
+            "line_total": quantity * unit_cents / 100,
+            "lead_time_days": candidate["lead_time_days"]
+        })
+
+    full_cost_cents = sum(c["gap"] * to_cents(c["unit_cost"]) for c in candidates)
+    return {
+        "budget": budget,
+        "items": items,
+        "total_cost": (to_cents(budget) - remaining) / 100,
+        "remaining_budget": remaining / 100,
+        "full_cost": full_cost_cents / 100
+    }
 
 # API endpoints
 @app.get("/")
@@ -303,6 +396,43 @@ def get_monthly_trends():
     result = list(months.values())
     result.sort(key=lambda x: x['month'])
     return result
+
+@app.get("/api/restocking/recommendations", response_model=RestockRecommendation)
+def get_restock_recommendations(budget: float = Query(ge=0, le=MAX_RESTOCK_BUDGET, allow_inf_nan=False)):
+    """Get recommended items to restock for a budget"""
+    return recommend_restock(budget)
+
+@app.post("/api/restocking/orders", response_model=RestockOrder, status_code=201)
+def create_restock_order(request: CreateRestockOrderRequest):
+    """Submit a restocking order for a budget"""
+    # Recalculate from the budget rather than accepting items from the client,
+    # so prices and quantities can't be altered in the request
+    recommendation = recommend_restock(request.budget)
+    if not recommendation["items"]:
+        raise HTTPException(status_code=400, detail="Budget is too low to restock any items")
+
+    # The order isn't complete until its slowest item arrives
+    lead_time_days = max(item["lead_time_days"] for item in recommendation["items"])
+    order_date = datetime.now().replace(microsecond=0)
+    number = len(restocking_orders) + 1
+    order = {
+        "id": str(number),
+        "order_number": f"RST-{number:04d}",
+        "items": recommendation["items"],
+        "budget": request.budget,
+        "total_cost": recommendation["total_cost"],
+        "status": "Submitted",
+        "order_date": order_date.isoformat(),
+        "lead_time_days": lead_time_days,
+        "expected_delivery": (order_date + timedelta(days=lead_time_days)).isoformat()
+    }
+    restocking_orders.append(order)
+    return order
+
+@app.get("/api/restocking/orders", response_model=List[RestockOrder])
+def get_restock_orders():
+    """Get submitted restocking orders, newest first"""
+    return list(reversed(restocking_orders))
 
 if __name__ == "__main__":
     import uvicorn
