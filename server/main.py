@@ -69,6 +69,11 @@ class InventoryItem(BaseModel):
     location: str
     last_updated: str
 
+class LowStockAlert(InventoryItem):
+    shortfall: int
+    reorder_cost: float
+    severity: str
+
 class Order(BaseModel):
     id: str
     order_number: str
@@ -225,6 +230,31 @@ def get_inventory(
 ):
     """Get all inventory items with optional filtering"""
     return apply_filters(inventory_items, warehouse, category)
+
+# Declared before /api/inventory/{item_id}, which would otherwise capture "alerts" as an ID
+@app.get("/api/inventory/alerts", response_model=List[LowStockAlert])
+def get_low_stock_alerts(
+    warehouse: Optional[str] = None,
+    category: Optional[str] = None
+):
+    """Get items at or below their reorder point, most severe first"""
+    alerts = []
+    for item in apply_filters(inventory_items, warehouse, category):
+        # Same low-stock rule as the dashboard count, so the two numbers always agree
+        if item["quantity_on_hand"] > item["reorder_point"]:
+            continue
+        shortfall = item["reorder_point"] - item["quantity_on_hand"]
+        alerts.append({
+            **item,
+            "shortfall": shortfall,
+            "reorder_cost": shortfall * to_cents(item["unit_cost"]) / 100,
+            # Critical means at or below half the reorder point
+            "severity": "critical" if item["quantity_on_hand"] * 2 <= item["reorder_point"] else "warning"
+        })
+
+    # Critical first, then largest shortfall. SKU breaks ties so the order is stable between requests.
+    alerts.sort(key=lambda a: (a["severity"] != "critical", -a["shortfall"], a["sku"]))
+    return alerts
 
 @app.get("/api/inventory/{item_id}", response_model=InventoryItem)
 def get_inventory_item(item_id: str):

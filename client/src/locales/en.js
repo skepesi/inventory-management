@@ -6,6 +6,7 @@ export default {
     orders: 'Orders',
     finance: 'Finance',
     demandForecast: 'Demand Forecast',
+    backlog: 'Backlog',
     restocking: 'Restocking',
     reports: 'Reports',
     companyName: 'Catalyst Components',
@@ -398,6 +399,25 @@ export default {
     dueDate: 'Due Date',
     addTask: 'Add Task',
     noTasks: 'No tasks yet. Add your first task above!'
+  },
+
+  // Low-stock alerts
+  alerts: {
+    buttonLabel: 'Low stock alerts, {count} items',
+    buttonLabelNone: 'Low stock alerts, none',
+    heading: 'Low stock alerts ({count})',
+    loading: 'Loading alerts...',
+    error: 'Failed to load low stock alerts',
+    retry: 'Retry',
+    empty: 'No items are low on stock',
+    onHand: 'On hand / reorder point',
+    shortfall: 'Shortfall',
+    reorderCost: 'Reorder cost',
+    severity: {
+      critical: 'Critical',
+      warning: 'Warning'
+    },
+    viewInventory: 'View inventory'
   },
 
   // Language

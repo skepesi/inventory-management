@@ -69,7 +69,7 @@
                 </td>
                 <td>
                   <span :class="['badge', item.priority]">
-                    {{ t(`priority.${item.priority}`) }}
+                    {{ getPriorityLabel(item.priority) }}
                   </span>
                 </td>
               </tr>
@@ -95,6 +95,9 @@ export default {
     const error = ref(null)
     const allBacklogItems = ref([])
     const inventoryItems = ref([])
+    // Each filter change starts a new load; without this guard a slower, older response
+    // could finish last and overwrite the data for the current filters.
+    let requestCounter = 0
 
     // Use shared filters
     const { selectedLocation, selectedCategory, getCurrentFilters } = useFilters()
@@ -111,8 +114,11 @@ export default {
     })
 
     const loadBacklog = async () => {
+      const requestId = ++requestCounter
+      loading.value = true
+      error.value = null
+
       try {
-        loading.value = true
         const filters = getCurrentFilters()
 
         const [backlogData, inventoryData] = await Promise.all([
@@ -122,15 +128,27 @@ export default {
             category: filters.category
           })
         ])
+        if (requestId !== requestCounter) return // superseded by a newer request
 
         allBacklogItems.value = backlogData
         inventoryItems.value = inventoryData
       } catch (err) {
-        error.value = t('backlog.loadError') + ': ' + err.message
+        if (requestId !== requestCounter) return
+        error.value = t('backlog.loadError')
+        console.error('Failed to load backlog:', err)
       } finally {
-        loading.value = false
+        // Only the latest request controls the loading state
+        if (requestId === requestCounter) {
+          loading.value = false
+        }
       }
     }
+
+    // Only translate known priorities; an unexpected value is shown as-is instead of
+    // as a raw 'priority.xxx' key. The data value itself stays lowercase for the badge class.
+    const KNOWN_PRIORITIES = ['high', 'medium', 'low']
+    const getPriorityLabel = (priority) =>
+      KNOWN_PRIORITIES.includes(priority) ? t(`priority.${priority}`) : String(priority ?? '')
 
     const getBacklogByPriority = (priority) => {
       return backlogItems.value.filter(item => item.priority === priority)
@@ -149,7 +167,8 @@ export default {
       loading,
       error,
       backlogItems,
-      getBacklogByPriority
+      getBacklogByPriority,
+      getPriorityLabel
     }
   }
 }

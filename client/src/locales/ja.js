@@ -6,6 +6,7 @@ export default {
     orders: '注文',
     finance: '財務',
     demandForecast: '需要予測',
+    backlog: 'バックログ',
     restocking: '補充発注',
     reports: 'レポート',
     companyName: '触媒コンポーネンツ',
@@ -398,6 +399,25 @@ export default {
     dueDate: '期限',
     addTask: 'タスクを追加',
     noTasks: 'タスクがありません。上記からタスクを追加してください！'
+  },
+
+  // Low-stock alerts
+  alerts: {
+    buttonLabel: '在庫不足アラート、{count}件',
+    buttonLabelNone: '在庫不足アラート、なし',
+    heading: '在庫不足アラート（{count}件）',
+    loading: 'アラートを読み込み中...',
+    error: '在庫不足アラートの読み込みに失敗しました',
+    retry: '再試行',
+    empty: '在庫が不足している商品はありません',
+    onHand: '在庫数 / 発注点',
+    shortfall: '不足数',
+    reorderCost: '発注コスト',
+    severity: {
+      critical: '緊急',
+      warning: '警告'
+    },
+    viewInventory: '在庫を表示'
   },
 
   // Language

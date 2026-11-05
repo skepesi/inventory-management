@@ -53,6 +53,7 @@ npm install && npm run dev
 
 ## API Endpoints
 - `GET /api/inventory` - Filters: warehouse, category
+- `GET /api/inventory/alerts` - Items at or below reorder point, most severe first. Filters: warehouse, category
 - `GET /api/orders` - Filters: warehouse, category, status, month
 - `GET /api/dashboard/summary` - All filters
 - `GET /api/demand`, `/api/backlog` - No filters
